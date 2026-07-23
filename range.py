@@ -68,7 +68,6 @@ def format_message(services, otps):
     text += f"   • OTPs: `{len(otps)}`\n\n"
     text += "─" * 35 + "\n\n"
 
-    # ===== SERVICES WITH ALL RANGES =====
     text += "*📋 SERVICES & RANGES*\n\n"
 
     services_sorted = sorted(services,
@@ -107,7 +106,6 @@ def format_message(services, otps):
     return text
 
 def send_telegram(text):
-    """সব Chat ID-তে মেসেজ পাঠান + কপি বাটন"""
     success = True
 
     reply_markup = json.dumps({
