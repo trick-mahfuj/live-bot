@@ -69,8 +69,6 @@ def format_message(services, otps):
     
     # ===== MNIT NETWORK SERVICES & RANGES =====
     text += "*📋 MNIT NETWORK SERVICES & RANGES*\n\n"
-    text += "`      SID                    RANGE`\n"
-    text += "`  ──────────────────────────────────`\n"
     
     services_sorted = sorted(services, 
         key=lambda x: (
@@ -87,18 +85,6 @@ def format_message(services, otps):
         is_active = (current_time - last_at) < 300000
         status = "🟢" if is_active else "🔴"
         
-        # SID (সাজানো)
-        if len(sid) > 15:
-            sid_display = sid[:12] + "..."
-        else:
-            sid_display = sid.ljust(15)
-        
-        # RANGE (সব রেঞ্জ)
-        if ranges:
-            range_str = ', '.join(ranges)
-        else:
-            range_str = 'None'
-        
         # Time
         if last_at > 0:
             bd_time = datetime.utcfromtimestamp(last_at/1000) + timedelta(hours=6)
@@ -106,9 +92,18 @@ def format_message(services, otps):
         else:
             time_str = 'N/A'
         
-        text += f"  {status} `{sid_display}`  `{range_str}`  ⏱️{time_str}\n"
+        # ===== SID + RANGE (টেবিল ফরম্যাট) =====
+        text += f"*{status} {sid}*\n"
+        if ranges:
+            # প্রতি লাইনে ৩-৪টি রেঞ্জ করে দেখান
+            for i in range(0, len(ranges), 4):
+                chunk = ranges[i:i+4]
+                text += f"   {', '.join(chunk)}\n"
+        else:
+            text += "   None\n"
+        text += f"   ⏱️ {time_str}\n\n"
     
-    text += "\n" + "─" * 35 + "\n"
+    text += "─" * 35 + "\n"
     text += "🔥 *Developer: MAHFUJ CHOWDHURY*"
     
     return text
