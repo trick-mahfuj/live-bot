@@ -27,9 +27,7 @@ update_count = 0
 # ============================================
 def get_bd_time():
     """Bangladesh Time (UTC+6)"""
-    utc_now = datetime.utcnow()
-    bd_time = utc_now + timedelta(hours=6)
-    return bd_time
+    return datetime.now() + timedelta(hours=6)
 
 def fetch_services():
     try:
@@ -70,7 +68,7 @@ def format_message(services, otps):
     text += f"   • OTPs: `{len(otps)}`\n\n"
     text += "─" * 35 + "\n\n"
     
-    # ===== SERVICES WITH RANGE & TIME =====
+    # ===== SERVICES WITH ALL RANGES (NO +N) =====
     text += "*📋 SERVICES & RANGES*\n\n"
     
     services_sorted = sorted(services, 
@@ -80,7 +78,7 @@ def format_message(services, otps):
         )
     )
     
-    for svc in services_sorted[:10]:
+    for svc in services_sorted[:15]:
         sid = svc.get('sid', 'Unknown')
         ranges = svc.get('ranges', [])
         last_at = svc.get('last_at', 0)
@@ -88,19 +86,21 @@ def format_message(services, otps):
         is_active = (current_time - last_at) < 300000
         status = "🟢" if is_active else "🔴"
         
-        # Range
-        range_str = ', '.join(ranges[:3]) if ranges else 'None'
-        if len(ranges) > 3:
-            range_str += f' +{len(ranges)-3}'
+        # ===== সব রেঞ্জ দেখাবে (কোনো +N থাকবে না) =====
+        if ranges:
+            # সব রেঞ্জ যোগ করুন
+            range_str = ', '.join(ranges)
+        else:
+            range_str = 'None'
         
-        # Time (BD Time)
+        # Time
         if last_at > 0:
             bd_time = datetime.utcfromtimestamp(last_at/1000) + timedelta(hours=6)
             time_str = bd_time.strftime('%H:%M:%S')
         else:
             time_str = 'N/A'
         
-        # ===== SID + RANGE + TIME =====
+        # ===== SID + ALL RANGES + TIME =====
         text += f"{status} *{sid}*\n"
         text += f"   📞 `{range_str}`\n"
         text += f"   ⏱️ `{time_str}`\n\n"
@@ -111,8 +111,17 @@ def format_message(services, otps):
     return text
 
 def send_telegram(text):
-    """সব Chat ID-তে মেসেজ পাঠান"""
+    """সব Chat ID-তে মেসেজ পাঠান + কপি বাটন"""
     success = True
+    
+    # কপি বাটন তৈরি
+    reply_markup = json.dumps({
+        "inline_keyboard": [
+            [
+                {"text": "📋 Copy Data", "callback_data": "copy"}
+            ]
+        ]
+    })
     
     for chat_id in CHAT_IDS:
         url = f"https://api.telegram.org/bot{BOT_TOKEN}/sendMessage"
@@ -120,7 +129,8 @@ def send_telegram(text):
             "chat_id": chat_id,
             "text": text,
             "parse_mode": "Markdown",
-            "disable_web_page_preview": True
+            "disable_web_page_preview": True,
+            "reply_markup": reply_markup
         }
         try:
             resp = requests.post(url, json=data, timeout=10)
@@ -141,6 +151,7 @@ def main():
     print(f"📱 Sending to {len(CHAT_IDS)} chat IDs")
     print("🔄 Auto-update every 30 seconds")
     print("🇧🇩 Timezone: Bangladesh (UTC+6)")
+    print("📋 Copy button added")
     
     while True:
         try:
