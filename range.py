@@ -5,9 +5,9 @@ import re
 import os
 from datetime import datetime, timedelta
 
-# ============================================
+# =====================================
 # 🔥 DEVELOPER: MAHFUJ CHOWDHURY
-# ============================================
+# =====================================
 
 API_KEY = "MV0ZO9UE2NE"
 BASE_URL = "https://api.2oo9.cloud/MXS47FLFX0U/tnemn/@public/api"
@@ -69,7 +69,7 @@ def format_message(services, otps):
     text += "─" * 35 + "\n\n"
     
     # ===== SERVICES WITH ALL RANGES (NO +N) =====
-    text += "*📋 SERVICES & RANGES*\n\n"
+text += "*📋MNIT NETWORK SERVICES & RANGES*\n\n"
     
     services_sorted = sorted(services, 
         key=lambda x: (
