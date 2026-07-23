@@ -26,7 +26,6 @@ update_count = 0
 # 🇧🇩 BANGLADESH TIME (UTC+6)
 # ============================================
 def get_bd_time():
-    """Bangladesh Time (UTC+6)"""
     return datetime.now() + timedelta(hours=6)
 
 def fetch_services():
@@ -68,8 +67,10 @@ def format_message(services, otps):
     text += f"   • OTPs: `{len(otps)}`\n\n"
     text += "─" * 35 + "\n\n"
     
-    # ===== SERVICES WITH ALL RANGES (NO +N) =====
-    text += "*📋 SERVICES & RANGES*\n\n"
+    # ===== MNIT NETWORK SERVICES & RANGES =====
+    text += "*📋 MNIT NETWORK SERVICES & RANGES*\n\n"
+    text += "`      SID                    RANGE`\n"
+    text += "`  ──────────────────────────────────`\n"
     
     services_sorted = sorted(services, 
         key=lambda x: (
@@ -86,9 +87,14 @@ def format_message(services, otps):
         is_active = (current_time - last_at) < 300000
         status = "🟢" if is_active else "🔴"
         
-        # ===== সব রেঞ্জ দেখাবে (কোনো +N থাকবে না) =====
+        # SID (সাজানো)
+        if len(sid) > 15:
+            sid_display = sid[:12] + "..."
+        else:
+            sid_display = sid.ljust(15)
+        
+        # RANGE (সব রেঞ্জ)
         if ranges:
-            # সব রেঞ্জ যোগ করুন
             range_str = ', '.join(ranges)
         else:
             range_str = 'None'
@@ -100,21 +106,17 @@ def format_message(services, otps):
         else:
             time_str = 'N/A'
         
-        # ===== SID + ALL RANGES + TIME =====
-        text += f"{status} *{sid}*\n"
-        text += f"   📞 `{range_str}`\n"
-        text += f"   ⏱️ `{time_str}`\n\n"
+        text += f"  {status} `{sid_display}`  `{range_str}`  ⏱️{time_str}\n"
     
-    text += "─" * 35 + "\n"
+    text += "\n" + "─" * 35 + "\n"
     text += "🔥 *Developer: MAHFUJ CHOWDHURY*"
     
     return text
 
 def send_telegram(text):
-    """সব Chat ID-তে মেসেজ পাঠান + কপি বাটন"""
     success = True
     
-    # কপি বাটন তৈরি
+    # ===== COPY BUTTON =====
     reply_markup = json.dumps({
         "inline_keyboard": [
             [
@@ -135,12 +137,8 @@ def send_telegram(text):
         try:
             resp = requests.post(url, json=data, timeout=10)
             if resp.status_code != 200:
-                print(f"❌ Failed to send to {chat_id}")
                 success = False
-            else:
-                print(f"✅ Sent to {chat_id}")
-        except Exception as e:
-            print(f"❌ Error sending to {chat_id}: {e}")
+        except:
             success = False
     
     return success
@@ -151,7 +149,6 @@ def main():
     print(f"📱 Sending to {len(CHAT_IDS)} chat IDs")
     print("🔄 Auto-update every 30 seconds")
     print("🇧🇩 Timezone: Bangladesh (UTC+6)")
-    print("📋 Copy button added")
     
     while True:
         try:
