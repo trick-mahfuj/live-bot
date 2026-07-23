@@ -3,7 +3,7 @@ import json
 import time
 import re
 import os
-from datetime import datetime
+from datetime import datetime, timedelta
 
 # ============================================
 # 🔥 DEVELOPER: MAHFUJ CHOWDHURY
@@ -13,14 +13,23 @@ API_KEY = "MV0ZO9UE2NE"
 BASE_URL = "https://api.2oo9.cloud/MXS47FLFX0U/tnemn/@public/api"
 BOT_TOKEN = "8229683960:AAFoJqIMYkGElPNXBro7QrmPnFyd4NCjfpk"
 
-# ✅ একাধিক Chat ID যোগ করুন
+# ✅ একাধিক Chat ID
 CHAT_IDS = [
-    "5579156849",    # আপনার Chat ID
-    "6235519694",     # অন্য কারও Chat ID
-    "5950373551"      # আরও একজন
+    "5579156849",
+    "6235519694",
+    "5950373551"
 ]
 
 update_count = 0
+
+# ============================================
+# 🇧🇩 BANGLADESH TIME (UTC+6)
+# ============================================
+def get_bd_time():
+    """Bangladesh Time (UTC+6)"""
+    utc_now = datetime.utcnow()
+    bd_time = utc_now + timedelta(hours=6)
+    return bd_time
 
 def fetch_services():
     try:
@@ -47,11 +56,11 @@ def format_message(services, otps):
         return "⚠️ No services found!"
     
     current_time = time.time() * 1000
-    now = datetime.now().strftime('%H:%M:%S')
+    now = get_bd_time().strftime('%H:%M:%S')
     
     text = "📡 *LIVE SERVICE & OTP MONITOR*\n"
     text += "═" * 35 + "\n\n"
-    text += f"⏱️ *Update:* `{now}`\n\n"
+    text += f"⏱️ *Update:* `{now}` (BD Time)\n\n"
     
     total = len(services)
     active = sum(1 for s in services if (current_time - s.get('last_at', 0)) < 300000)
@@ -61,16 +70,42 @@ def format_message(services, otps):
     text += f"   • OTPs: `{len(otps)}`\n\n"
     text += "─" * 35 + "\n\n"
     
+    # ===== SERVICES WITH RANGE & TIME =====
     text += "*📋 SERVICES & RANGES*\n\n"
-    for svc in services[:10]:
+    
+    services_sorted = sorted(services, 
+        key=lambda x: (
+            -1 if (current_time - x.get('last_at', 0)) < 300000 else 0,
+            -x.get('last_at', 0)
+        )
+    )
+    
+    for svc in services_sorted[:10]:
         sid = svc.get('sid', 'Unknown')
         ranges = svc.get('ranges', [])
-        is_active = (current_time - svc.get('last_at', 0)) < 300000
+        last_at = svc.get('last_at', 0)
+        
+        is_active = (current_time - last_at) < 300000
         status = "🟢" if is_active else "🔴"
-        range_str = ', '.join(ranges[:2]) if ranges else 'None'
-        text += f"{status} *{sid}* → `{range_str}`\n"
+        
+        # Range
+        range_str = ', '.join(ranges[:3]) if ranges else 'None'
+        if len(ranges) > 3:
+            range_str += f' +{len(ranges)-3}'
+        
+        # Time (BD Time)
+        if last_at > 0:
+            bd_time = datetime.utcfromtimestamp(last_at/1000) + timedelta(hours=6)
+            time_str = bd_time.strftime('%H:%M:%S')
+        else:
+            time_str = 'N/A'
+        
+        # ===== SID + RANGE + TIME =====
+        text += f"{status} *{sid}*\n"
+        text += f"   📞 `{range_str}`\n"
+        text += f"   ⏱️ `{time_str}`\n\n"
     
-    text += "\n" + "─" * 35 + "\n"
+    text += "─" * 35 + "\n"
     text += "🔥 *Developer: MAHFUJ CHOWDHURY*"
     
     return text
@@ -105,6 +140,7 @@ def main():
     print("🤖 Live Bot Started on Railway!")
     print(f"📱 Sending to {len(CHAT_IDS)} chat IDs")
     print("🔄 Auto-update every 30 seconds")
+    print("🇧🇩 Timezone: Bangladesh (UTC+6)")
     
     while True:
         try:
