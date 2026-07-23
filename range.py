@@ -26,7 +26,6 @@ update_count = 0
 # 🇧🇩 BANGLADESH TIME (UTC+6)
 # ============================================
 def get_bd_time():
-    """Bangladesh Time (UTC+6)"""
     return datetime.now() + timedelta(hours=6)
 
 def fetch_services():
@@ -68,9 +67,10 @@ def format_message(services, otps):
     text += f"   • OTPs: `{len(otps)}`\n\n"
     text += "─" * 35 + "\n\n"
     
-    # ===== SERVICES WITH ALL RANGES (NO +N) =====
+    # ===== SERVICES WITH SERIAL + SORTED RANGES =====
     text += "*📋 SERVICES & RANGES*\n\n"
     
+    # Active first, then by time
     services_sorted = sorted(services, 
         key=lambda x: (
             -1 if (current_time - x.get('last_at', 0)) < 300000 else 0,
@@ -78,7 +78,8 @@ def format_message(services, otps):
         )
     )
     
-    for svc in services_sorted[:15]:
+    serial = 1
+    for svc in services_sorted:
         sid = svc.get('sid', 'Unknown')
         ranges = svc.get('ranges', [])
         last_at = svc.get('last_at', 0)
@@ -86,10 +87,11 @@ def format_message(services, otps):
         is_active = (current_time - last_at) < 300000
         status = "🟢" if is_active else "🔴"
         
-        # ===== সব রেঞ্জ দেখাবে (কোনো +N থাকবে না) =====
+        # ===== SORTED RANGES (আলফাবেটিক্যালি সাজানো) =====
         if ranges:
-            # সব রেঞ্জ যোগ করুন
-            range_str = ', '.join(ranges)
+            # রেঞ্জ গুলো সাজান
+            sorted_ranges = sorted(ranges, key=lambda x: (len(x), x))
+            range_str = ', '.join(sorted_ranges)
         else:
             range_str = 'None'
         
@@ -100,10 +102,11 @@ def format_message(services, otps):
         else:
             time_str = 'N/A'
         
-        # ===== SID + ALL RANGES + TIME =====
-        text += f"{status} *{sid}*\n"
+        # ===== SERIAL + SID + SORTED RANGES + TIME =====
+        text += f"*{serial}.* {status} *{sid}*\n"
         text += f"   📞 `{range_str}`\n"
         text += f"   ⏱️ `{time_str}`\n\n"
+        serial += 1
     
     text += "─" * 35 + "\n"
     text += "🔥 *Developer: MAHFUJ CHOWDHURY*"
@@ -114,11 +117,11 @@ def send_telegram(text):
     """সব Chat ID-তে মেসেজ পাঠান + কপি বাটন"""
     success = True
     
-    # কপি বাটন তৈরি
+    # কপি বাটন (সঠিক Callback Data সহ)
     reply_markup = json.dumps({
         "inline_keyboard": [
             [
-                {"text": "📋 Copy Data", "callback_data": "copy"}
+                {"text": "📋 Copy All", "callback_data": "copy_all"}
             ]
         ]
     })
@@ -145,13 +148,48 @@ def send_telegram(text):
     
     return success
 
+def handle_callback():
+    """কপি বাটনের Callback হ্যান্ডেল করুন"""
+    url = f"https://api.telegram.org/bot{BOT_TOKEN}/getUpdates"
+    try:
+        resp = requests.get(url, timeout=10)
+        data = resp.json()
+        
+        if data['ok'] and data['result']:
+            for update in data['result']:
+                if 'callback_query' in update:
+                    callback = update['callback_query']
+                    callback_id = callback['id']
+                    message = callback['message']
+                    chat_id = message['chat']['id']
+                    
+                    # Answer callback
+                    answer_url = f"https://api.telegram.org/bot{BOT_TOKEN}/answerCallbackQuery"
+                    answer_data = {
+                        "callback_query_id": callback_id,
+                        "text": "📋 Data copied to clipboard!",
+                        "show_alert": False
+                    }
+                    requests.post(answer_url, json=answer_data)
+                    
+                    # Copy মেসেজ পাঠান
+                    copy_url = f"https://api.telegram.org/bot{BOT_TOKEN}/sendMessage"
+                    copy_data = {
+                        "chat_id": chat_id,
+                        "text": f"📋 *Copy this data:*\n\n```\n{message['text']}\n```",
+                        "parse_mode": "Markdown"
+                    }
+                    requests.post(copy_url, json=copy_data)
+    except:
+        pass
+
 def main():
     global update_count
     print("🤖 Live Bot Started on Railway!")
     print(f"📱 Sending to {len(CHAT_IDS)} chat IDs")
     print("🔄 Auto-update every 30 seconds")
     print("🇧🇩 Timezone: Bangladesh (UTC+6)")
-    print("📋 Copy button added")
+    print("📋 Copy button with callback")
     
     while True:
         try:
@@ -165,6 +203,9 @@ def main():
                 print(f"✅ Update #{update_count} sent")
             else:
                 print("⚠️ No services found")
+            
+            # Callback handle
+            handle_callback()
             
             time.sleep(30)
         except Exception as e:
