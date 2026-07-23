@@ -26,6 +26,7 @@ update_count = 0
 # 🇧🇩 BANGLADESH TIME (UTC+6)
 # ============================================
 def get_bd_time():
+    """Bangladesh Time (UTC+6)"""
     return datetime.now() + timedelta(hours=6)
 
 def fetch_services():
@@ -67,8 +68,8 @@ def format_message(services, otps):
     text += f"   • OTPs: `{len(otps)}`\n\n"
     text += "─" * 35 + "\n\n"
     
-    # ===== MNIT NETWORK SERVICES & RANGES =====
-    text += "*📋 MNIT NETWORK SERVICES & RANGES*\n\n"
+    # ===== SERVICES WITH ALL RANGES (NO +N) =====
+    text += "*📋 SERVICES & RANGES*\n\n"
     
     services_sorted = sorted(services, 
         key=lambda x: (
@@ -85,6 +86,13 @@ def format_message(services, otps):
         is_active = (current_time - last_at) < 300000
         status = "🟢" if is_active else "🔴"
         
+        # ===== সব রেঞ্জ দেখাবে (কোনো +N থাকবে না) =====
+        if ranges:
+            # সব রেঞ্জ যোগ করুন
+            range_str = ', '.join(ranges)
+        else:
+            range_str = 'None'
+        
         # Time
         if last_at > 0:
             bd_time = datetime.utcfromtimestamp(last_at/1000) + timedelta(hours=6)
@@ -92,24 +100,10 @@ def format_message(services, otps):
         else:
             time_str = 'N/A'
         
-        # ===== SID হেডার =====
-        text += f"*{status} {sid}*\n"
-        
-        # ===== RANGE গুলো (প্রতি লাইনে ৪টি) =====
-        if ranges:
-            for i in range(0, len(ranges), 4):
-                chunk = ranges[i:i+4]
-                # প্রতিটি রেঞ্জ আলাদা কপি লিংক হিসেবে
-                range_links = []
-                for r in chunk:
-                    # প্রতিটি রেঞ্জের জন্য আলাদা কপি লিংক
-                    range_links.append(f"[`{r}`](https://t.me/share/url?url={r})")
-                text += f"   {', '.join(range_links)}\n"
-        else:
-            text += "   None\n"
-        
-        # ===== সময় =====
-        text += f"   ⏱️ {time_str}\n\n"
+        # ===== SID + ALL RANGES + TIME =====
+        text += f"{status} *{sid}*\n"
+        text += f"   📞 `{range_str}`\n"
+        text += f"   ⏱️ `{time_str}`\n\n"
     
     text += "─" * 35 + "\n"
     text += "🔥 *Developer: MAHFUJ CHOWDHURY*"
@@ -117,13 +111,14 @@ def format_message(services, otps):
     return text
 
 def send_telegram(text):
+    """সব Chat ID-তে মেসেজ পাঠান + কপি বাটন"""
     success = True
     
-    # ===== COPY BUTTON (সব ডাটা কপি) =====
+    # কপি বাটন তৈরি
     reply_markup = json.dumps({
         "inline_keyboard": [
             [
-                {"text": "📋 Copy All Data", "callback_data": "copy_all"}
+                {"text": "📋 Copy Data", "callback_data": "copy"}
             ]
         ]
     })
@@ -140,8 +135,12 @@ def send_telegram(text):
         try:
             resp = requests.post(url, json=data, timeout=10)
             if resp.status_code != 200:
+                print(f"❌ Failed to send to {chat_id}")
                 success = False
-        except:
+            else:
+                print(f"✅ Sent to {chat_id}")
+        except Exception as e:
+            print(f"❌ Error sending to {chat_id}: {e}")
             success = False
     
     return success
@@ -152,6 +151,7 @@ def main():
     print(f"📱 Sending to {len(CHAT_IDS)} chat IDs")
     print("🔄 Auto-update every 30 seconds")
     print("🇧🇩 Timezone: Bangladesh (UTC+6)")
+    print("📋 Copy button added")
     
     while True:
         try:
