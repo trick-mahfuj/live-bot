@@ -12,7 +12,13 @@ from datetime import datetime
 API_KEY = "MV0ZO9UE2NE"
 BASE_URL = "https://api.2oo9.cloud/MXS47FLFX0U/tnemn/@public/api"
 BOT_TOKEN = "8229683960:AAFoJqIMYkGElPNXBro7QrmPnFyd4NCjfpk"
-CHAT_ID = "5579156849"
+
+# ✅ একাধিক Chat ID যোগ করুন
+CHAT_IDS = [
+    "5579156849",    # আপনার Chat ID
+    "6235519694",     # অন্য কারও Chat ID
+    "5950373551"      # আরও একজন
+]
 
 update_count = 0
 
@@ -70,22 +76,34 @@ def format_message(services, otps):
     return text
 
 def send_telegram(text):
-    url = f"https://api.telegram.org/bot{BOT_TOKEN}/sendMessage"
-    data = {
-        "chat_id": CHAT_ID,
-        "text": text,
-        "parse_mode": "Markdown",
-        "disable_web_page_preview": True
-    }
-    try:
-        resp = requests.post(url, json=data, timeout=10)
-        return resp.status_code == 200
-    except:
-        return False
+    """সব Chat ID-তে মেসেজ পাঠান"""
+    success = True
+    
+    for chat_id in CHAT_IDS:
+        url = f"https://api.telegram.org/bot{BOT_TOKEN}/sendMessage"
+        data = {
+            "chat_id": chat_id,
+            "text": text,
+            "parse_mode": "Markdown",
+            "disable_web_page_preview": True
+        }
+        try:
+            resp = requests.post(url, json=data, timeout=10)
+            if resp.status_code != 200:
+                print(f"❌ Failed to send to {chat_id}")
+                success = False
+            else:
+                print(f"✅ Sent to {chat_id}")
+        except Exception as e:
+            print(f"❌ Error sending to {chat_id}: {e}")
+            success = False
+    
+    return success
 
 def main():
     global update_count
     print("🤖 Live Bot Started on Railway!")
+    print(f"📱 Sending to {len(CHAT_IDS)} chat IDs")
     print("🔄 Auto-update every 30 seconds")
     
     while True:
