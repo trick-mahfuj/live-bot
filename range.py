@@ -26,7 +26,6 @@ update_count = 0
 # 🇧🇩 BANGLADESH TIME (UTC+6)
 # ============================================
 def get_bd_time():
-    """Bangladesh Time (UTC+6)"""
     return datetime.now() + timedelta(hours=6)
 
 def fetch_services():
@@ -70,12 +69,10 @@ def format_message(services, otps):
 
     text += "*📋 SERVICES & RANGES*\n\n"
 
-    services_sorted = sorted(services,
-        key=lambda x: (
-            -1 if (current_time - x.get('last_at', 0)) < 300000 else 0,
-            -x.get('last_at', 0)
-        )
-    )
+    services_sorted = sorted(services, key=lambda x: (
+        -1 if (current_time - x.get('last_at', 0)) < 300000 else 0,
+        -x.get('last_at', 0)
+    ))
 
     for svc in services_sorted[:15]:
         sid = svc.get('sid', 'Unknown')
