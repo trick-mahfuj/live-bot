@@ -92,19 +92,24 @@ def format_message(services, otps):
         else:
             time_str = 'N/A'
         
-        # ===== SID হেডার হিসেবে =====
+        # ===== SID হেডার =====
         text += f"*{status} {sid}*\n"
         
-        # ===== RANGE গুলো লাইন ধরে (প্রতি লাইনে ৪টি) =====
+        # ===== RANGE গুলো (প্রতি লাইনে ৪টি) =====
         if ranges:
             for i in range(0, len(ranges), 4):
                 chunk = ranges[i:i+4]
-                text += f"{', '.join(chunk)}\n"
+                # প্রতিটি রেঞ্জ আলাদা কপি লিংক হিসেবে
+                range_links = []
+                for r in chunk:
+                    # প্রতিটি রেঞ্জের জন্য আলাদা কপি লিংক
+                    range_links.append(f"[`{r}`](https://t.me/share/url?url={r})")
+                text += f"   {', '.join(range_links)}\n"
         else:
-            text += "None\n"
+            text += "   None\n"
         
         # ===== সময় =====
-        text += f"⏱️ {time_str}\n\n"
+        text += f"   ⏱️ {time_str}\n\n"
     
     text += "─" * 35 + "\n"
     text += "🔥 *Developer: MAHFUJ CHOWDHURY*"
@@ -114,11 +119,11 @@ def format_message(services, otps):
 def send_telegram(text):
     success = True
     
-    # ===== COPY BUTTON =====
+    # ===== COPY BUTTON (সব ডাটা কপি) =====
     reply_markup = json.dumps({
         "inline_keyboard": [
             [
-                {"text": "📋 Copy Data", "callback_data": "copy"}
+                {"text": "📋 Copy All Data", "callback_data": "copy_all"}
             ]
         ]
     })
@@ -141,41 +146,6 @@ def send_telegram(text):
     
     return success
 
-def handle_callback():
-    """কপি বাটনের Callback হ্যান্ডেল করুন"""
-    url = f"https://api.telegram.org/bot{BOT_TOKEN}/getUpdates"
-    try:
-        resp = requests.get(url, timeout=10)
-        data = resp.json()
-        
-        if data['ok'] and data['result']:
-            for update in data['result']:
-                if 'callback_query' in update:
-                    callback = update['callback_query']
-                    callback_id = callback['id']
-                    message = callback['message']
-                    chat_id = message['chat']['id']
-                    
-                    # Answer callback
-                    answer_url = f"https://api.telegram.org/bot{BOT_TOKEN}/answerCallbackQuery"
-                    answer_data = {
-                        "callback_query_id": callback_id,
-                        "text": "📋 Data copied to clipboard!",
-                        "show_alert": False
-                    }
-                    requests.post(answer_url, json=answer_data)
-                    
-                    # Copy মেসেজ পাঠান
-                    copy_url = f"https://api.telegram.org/bot{BOT_TOKEN}/sendMessage"
-                    copy_data = {
-                        "chat_id": chat_id,
-                        "text": f"📋 *Copy this data:*\n\n```\n{message['text']}\n```",
-                        "parse_mode": "Markdown"
-                    }
-                    requests.post(copy_url, json=copy_data)
-    except:
-        pass
-
 def main():
     global update_count
     print("🤖 Live Bot Started on Railway!")
@@ -195,9 +165,6 @@ def main():
                 print(f"✅ Update #{update_count} sent")
             else:
                 print("⚠️ No services found")
-            
-            # Callback handle
-            handle_callback()
             
             time.sleep(30)
         except Exception as e:
